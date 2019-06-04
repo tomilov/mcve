@@ -1,0 +1,67 @@
+cmake_minimum_required(VERSION 3.11)
+
+project("thrust1" LANGUAGES CXX CUDA)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_EXTENSIONS ON)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+find_package(CUDA 10.1 REQUIRED)
+
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -use_fast_math")
+#set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=56")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --resource-usage")
+#set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror cross-execution-space-call,reorder")
+
+add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --default-stream per-thread")
+
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xptxas=-v")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xptxas=--warn-on-local-memory-usage")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xptxas=--warn-on-spills")
+
+if(WIN32)
+    include_directories("C:/ProgramData/NVIDIA Corporation/CUDA Samples/v10.1/common/inc")
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include")
+    #link_directories("${CUDA_TOOLKIT_ROOT_DIR}/lib")
+elseif(UNIX)
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc")
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/include")
+else()
+    message(FATAL_ERROR "Unsupported platform")
+endif()
+
+if(NOT MSVC)
+    if(CMAKE_BUILD_TYPE MATCHES "Debug|Default")
+        set(HOST_COMPILER_OPTIONS "${CMAKE_CXX_FLAGS_DEBUG}")
+        set(CUDA_LINKER_OPTIONS "${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(HOST_COMPILER_OPTIONS "${CMAKE_CXX_FLAGS_RELEASE}")
+        set(HOST_LINKER_OPTIONS "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        set(HOST_COMPILER_OPTIONS "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+        set(HOST_LINKER_OPTIONS "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+        set(HOST_COMPILER_OPTIONS "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+        set(HOST_LINKER_OPTIONS "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL}")
+    else()
+        message(FATAL_ERROR "Unknown build type")
+    endif()
+endif()
+string(REGEX REPLACE " -flto| -ffat-lto-objects" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --compiler-options=\"${CMAKE_CXX_FLAGS} ${HOST_COMPILER_OPTIONS} ${OpenMP_CXX_FLAGS}\" --linker-options=\"${CMAKE_EXE_LINKER_FLAGS} ${HOST_LINKER_OPTIONS} ${OpenMP_EXE_LINKER_FLAGS}\"")
+
+list(APPEND SOURCES "main.cu")
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${RESOURCES} ${QM_FILES})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+endif()
