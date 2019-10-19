@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project("thrust2" LANGUAGES CXX CUDA)
+project("thrust3" LANGUAGES CXX CUDA)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
